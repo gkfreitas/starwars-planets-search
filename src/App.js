@@ -1,9 +1,10 @@
-import React from 'react';
-import './App.css';
+import React, { Component } from 'react';
+import Table from './components/Table';
 
-function App() {
-  return (
-    <span>Hello, App!</span>
-  );
+export default class App extends Component {
+  render() {
+    return (
+      <Table />
+    );
+  }
 }
-export default App;
