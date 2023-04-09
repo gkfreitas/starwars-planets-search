@@ -1,202 +1,172 @@
-import React, { Component } from 'react';
-import { planetsData } from '../helpers/data';
+import { useContext, useEffect, useState } from 'react';
+import { PlanetsContext } from '../context/PlanetsContext';
 
-class Table extends Component {
-  state = {
-    value: 0,
-    column: 'population',
-    comparasion: 'maior que',
-    filter: '',
-    results: [],
-    resultsFiltered: [],
-    filterBool: false,
-    titles: [],
-    resultsStatic: [],
-    filterByNumericValues: [],
-  };
+function Table() {
+  const {
+    planets,
+    filterBy,
+    filters,
+    setFilterBy,
+    loadPlanets,
+    handleFilterBy,
+    handleAddFilter,
+    handleRemoveFilter,
+    handleRemoveAllFilter,
+  } = useContext(PlanetsContext);
 
-  componentDidMount() {
-    this.loadTable();
-  }
+  const [nameFilter, setNameFilter] = useState('');
 
-  loadTable = async () => {
-    const data = await planetsData();
-    const { results } = data;
-    results.forEach((e) => delete e.residents);
-    const titles = Object.keys(results[0]);
-    this.setState({ results, titles, resultsStatic: results, resultsFiltered: results });
-  };
+  useEffect(() => {
+    loadPlanets();
+  }, []);
 
-  filterName = () => {
-    const { filter, resultsStatic } = this.state;
-    const filtered = resultsStatic.filter((el) => el.name.toUpperCase()
-      .includes(filter.toUpperCase()));
-    this.setState({ results: filtered });
-  };
-
-  filterNumeric = () => {
-    const { filterByNumericValues, resultsFiltered } = this.state;
-    filterByNumericValues.forEach((e) => {
-      if (e.comparasion === 'maior que') {
-        const filtered = resultsFiltered
-          .filter((el) => Number(el[e.column]) > Number(e.value));
-        this.setState({ resultsFiltered: filtered, filterBool: true });
-      }
-      if (e.comparasion === 'menor que') {
-        const filtered = resultsFiltered
-          .filter((el) => Number(el[e.column]) < Number(e.value));
-        this.setState({ resultsFiltered: filtered, filterBool: true });
-      }
-
-      if (e.comparasion === 'igual a') {
-        const filtered = resultsFiltered
-          .filter((el) => Number(el[e.column]) === Number(e.value));
-        this.setState({ resultsFiltered: filtered, filterBool: true });
-      }
-    });
-  };
-
-  handleChange = ({ target }) => {
-    const { value, name } = target;
-    if (name === 'filter') {
-      this.setState({
-        [name]: value,
-      }, this.filterName);
+  const applyFilters = () => {
+    let filteredPlanets = planets;
+    if (nameFilter) {
+      filteredPlanets = filteredPlanets.filter((planet) => (
+        planet.name.toLowerCase().includes(nameFilter.toLowerCase())
+      ));
     }
-    this.setState({
-      [name]: value,
+    filters.forEach((filter) => {
+      filteredPlanets = filteredPlanets.filter((planet) => {
+        const planetValue = Number(planet[filter.column]);
+        const filterValue = Number(filter.value);
+        switch (filter.comparison) {
+        case 'maior que':
+          return planetValue > filterValue;
+        case 'menor que':
+          return planetValue < filterValue;
+        case 'igual a':
+          return planetValue === filterValue;
+        default:
+          return true;
+        }
+      });
     });
+    return filteredPlanets;
   };
 
-  handleClick = () => {
-    const { value, comparasion, column } = this.state;
-    this.setState((prevState) => ({
-      filterByNumericValues: [...prevState.filterByNumericValues,
-        { value, comparasion, column }],
-    }), this.filterNumeric, this.handleChange);
-  };
+  const filteredPlanets = applyFilters();
 
-  removeFilter = (element) => {
-    const { filterByNumericValues, results } = this.state;
-    console.log(element);
-
-    this.setState({
-      resultsFiltered: results,
-      filterByNumericValues: filterByNumericValues.filter((e) => e !== element),
-    }, this.filterNumeric);
-    if (element === '') {
-      this.setState({
-        resultsFiltered: results,
-        filterByNumericValues: [],
-      }, this.filterNumeric);
-    }
-  };
-
-  render() {
-    const { results, titles, value, resultsFiltered, filterBool,
-      filterByNumericValues, column } = this.state;
-    return (
-      <>
-        <label htmlFor="">
-          Coluna
-          <select
-            data-testid="column-filter"
-            name="column"
-            value={ column }
-            onChange={ this.handleChange }
-            onClick={ this.handleChange }
-          >
-            {filterByNumericValues.some((e) => e.column === 'population') ? ''
-              : <option>population</option>}
-            {filterByNumericValues.some((e) => e.column === 'orbital_period') ? ''
-              : <option>orbital_period</option>}
-            {filterByNumericValues.some((e) => e.column === 'diameter') ? ''
-              : <option>diameter</option>}
-            {filterByNumericValues.some((e) => e.column === 'rotation_period') ? ''
-              : <option>rotation_period</option>}
-            {filterByNumericValues.some((e) => e.column === 'surface_water') ? ''
-              : <option>surface_water</option>}
-          </select>
-        </label>
-
-        <label htmlFor="">
-          Operador
-          <select
-            onChange={ this.handleChange }
-            data-testid="comparison-filter"
-            name="comparasion"
-          >
-            <option>maior que</option>
-            <option>menor que</option>
-            <option>igual a</option>
-          </select>
-        </label>
-        <label>
-          Value
-          <input
-            type="number"
-            name="value"
-            value={ value }
-            data-testid="value-filter"
-            onChange={ this.handleChange }
-          />
-        </label>
-
+  return (
+    <div>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Rotation period</th>
+            <th>Orbital period</th>
+            <th>Diameter</th>
+            <th>Climate</th>
+            <th>Gravity</th>
+            <th>Terrain</th>
+            <th>Surface Water</th>
+            <th>Population</th>
+            <th>Films</th>
+            <th>Created</th>
+            <th>Edited</th>
+            <th>URL</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredPlanets.map((planet) => (
+            <tr key={ planet.name }>
+              <td>{planet.name}</td>
+              <td>{planet.rotation_period}</td>
+              <td>{planet.orbital_period}</td>
+              <td>{planet.diameter}</td>
+              <td>{planet.climate}</td>
+              <td>{planet.gravity}</td>
+              <td>{planet.terrain}</td>
+              <td>{planet.surface_water}</td>
+              <td>{planet.population}</td>
+              <td>{planet.films}</td>
+              <td>{planet.created}</td>
+              <td>{planet.edited}</td>
+              <td>{planet.url}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div>
+        <h2>Filtros:</h2>
         <input
           type="text"
-          name="filter"
-          onChange={ this.handleChange }
+          value={ nameFilter }
+          onChange={ (e) => setNameFilter(e.target.value) }
           data-testid="name-filter"
+          placeholder="Filtrar por nome"
         />
+        <select
+          data-testid="column-filter"
+          value={ filterBy.column }
+          onClick={
+            (e) => handleFilterBy(e.target.value, filterBy.comparison, filterBy.value)
+          }
+          onChange={
+            (e) => handleFilterBy(e.target.value, filterBy.comparison, filterBy.value)
+          }
+        >
+          {!filters.some((e) => e.column === 'rotation_period')
+          && <option value="rotation_period">rotation_period</option>}
+          {!filters.some((e) => e.column === 'orbital_period')
+           && <option value="orbital_period">orbital_period</option>}
+          {!filters.some((e) => e.column === 'diameter')
+          && <option value="diameter">diameter</option>}
+          {!filters.some((e) => e.column === 'population')
+           && <option value="population">population</option>}
+          {!filters.some((e) => e.column === 'surface_water')
+           && <option value="surface_water">surface_water</option>}
+        </select>
+        <input
+          data-testid="value-filter"
+          type="number"
+          value={ filterBy.value }
+          onChange={ (e) => setFilterBy({ ...filterBy, value: e.target.value }) }
+        />
+        <select
+          data-testid="comparison-filter"
+          value={ filterBy.comparison }
+          onClick={ (e) => setFilterBy({ ...filterBy, comparison: e.target.value }) }
+          onChange={ (e) => setFilterBy({ ...filterBy, comparison: e.target.value }) }
+        >
+          <option value="maior que">maior que</option>
+          <option value="menor que">menor que</option>
+          <option value="igual a">igual a</option>
+        </select>
         <button
-          type="button"
           data-testid="button-filter"
-          onClick={ this.handleClick }
+          onClick={ () => handleAddFilter(filterBy) }
         >
-          Filter
+          Adicionar filtro
         </button>
-        {filterBool && filterByNumericValues.map((e, i) => (
-          <div key={ `${e.column} ${i}` } data-testid="filter">
-            <button
-              onClick={ () => this.removeFilter(e) }
-            >
-              rm
-            </button>
-            <p>{`${e.column} ${e.comparasion} ${e.value}`}</p>
-
-          </div>
-        ))}
         <button
+          onClick={ () => handleRemoveAllFilter([]) }
           data-testid="button-remove-filters"
-          onClick={ () => this.removeFilter('') }
         >
-          rm all
+          Remover todas filtragens
+
         </button>
-        <table>
-          <thead>
-            <tr>
-              {titles.map((e) => (
-                <th key={ `${e} key1` }>{e}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
+        <div>
+          {filters.map((filter) => (
+            <span
+              data-testid="filter"
+              key={ `${filter.column}-${filter.comparison}-${filter.value}` }
+            >
+              {`${filter.column} ${filter.comparison} ${filter.value}`}
+              <button
+                onClick={ () => handleRemoveFilter(filter) }
+              >
+                Remover filtro
 
-            {filterBool ? resultsFiltered.map((e, i) => (
-              <tr key={ `${e.edited} key${i}` }>
-                {titles.map((key) => <td key={ `${key} key 3` }>{e[key]}</td>)}
-              </tr>
-            )) : results.map((e, i) => (
-              <tr key={ `${e.edited} key${i}` }>
-                {titles.map((key) => <td key={ `${key} key 3` }>{e[key]}</td>)}
-              </tr>
-            ))}
-          </tbody>
+              </button>
+            </span>
+          ))}
+        </div>
+      </div>
 
-        </table>
-      </>
-    );
-  }
+    </div>
+  );
 }
 
 export default Table;
